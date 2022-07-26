@@ -47,7 +47,7 @@ afterEvaluate {
                 from components.release
                 groupId = "com.github.coldDelight" // github userName 작성
                 artifactId = 'hashtage-text' //표시 이름
-                version = '1.0' // 버전
+                version = '1.1' // 버전
             }
         }
     }

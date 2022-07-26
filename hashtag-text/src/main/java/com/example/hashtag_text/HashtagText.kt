@@ -23,26 +23,47 @@ class HashtagText constructor(
     init {
         attrs?.let { (it) }
     }
+
     override fun onTextChanged(
         text: CharSequence?,
         start: Int,
         lengthBefore: Int,
         lengthAfter: Int
     ) {
+        //전체 # 개수
         val targetIndexList = indexOfAll(text.toString(), '#')
-        val hashIndexList = findHashIndex(text.toString(), targetIndexList)
-        if(targetIndexList.isNotEmpty()) {
-            for (i in 0 until targetIndexList.size) {
-                if (targetIndexList.size == hashIndexList.size) {
-                    this@HashtagText.text?.setSpan(
-                        ForegroundColorSpan(Color.GREEN),
-                        targetIndexList[i],
-                        hashIndexList[i],
-                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                    )
+        //연속된 # 제거 찐 # index
+        val realIndexList = findRealIndex(targetIndexList,text.toString().length)
+        //해시태그 끝나는곳 index
+        val hashIndexList = findHashIndex(text.toString(), realIndexList)
+        //최대 해시태그 길이
+        val maxTextLen = 5
+
+
+        if (realIndexList.isNotEmpty()) {
+            for (i in 0 until realIndexList.size) {
+                if (realIndexList.size == hashIndexList.size) {
+                    val diff =  hashIndexList[i] - realIndexList[i]
+                    if(diff>maxTextLen){
+                        this@HashtagText.text?.setSpan(
+                            ForegroundColorSpan(Color.GREEN),
+                            realIndexList[i],
+                            realIndexList[i]+maxTextLen,// 최대크기 까지만
+                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }else{
+                        this@HashtagText.text?.setSpan(
+                            ForegroundColorSpan(Color.GREEN),
+                            realIndexList[i],
+                            hashIndexList[i]+1,
+                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+
                 }
             }
         }
+
         super.onTextChanged(text, start, lengthBefore, lengthAfter)
     }
 
@@ -57,20 +78,71 @@ class HashtagText constructor(
         return targetIndexList
     }
 
-    private fun findHashIndex(text: String, targetIndexList: MutableList<Int>): MutableList<Int> {
+    private fun findRealIndex(targetIndexList:MutableList<Int>,textSize:Int):MutableList<Int>{
+        val realIndexList = mutableListOf<Int>()
+        val size = targetIndexList.size
+
+        var check:Int=-1
+        var i:Int = 0
+
+        while (i<size){
+             check = targetIndexList[i]
+            for(j in i+1 until size){// i 다음값 부터 끝까지
+                if(check+1==targetIndexList[j]){
+                    i += 1
+                    check = targetIndexList[j]
+                }else{
+                    realIndexList.add(targetIndexList[j-1])
+                    break
+                }
+            }
+            i++
+        }
+        realIndexList.add(check)
+        return realIndexList
+//        for(i in 0 until size-1){// 0부터 마지막 값은 비교 X
+//            Log.d("$i", "IIIIII: ${targetIndexList[i]}")
+//
+//            var check = targetIndexList[i]
+////            Log.d("iiiii", "findRealIndex: ${i}")
+//            for(j in i+1 until size){// i 다음값 부터 끝까지
+//                Log.d("$j", "JJJJJJ: ${targetIndexList[j]}")
+//
+//                if(check+1==targetIndexList[j]){
+//                    i += 1
+//                    check = targetIndexList[j]
+//                }else{
+//                    Log.d("jjj", "findRealIndex: ${targetIndexList[j-1]}")
+//                    break
+//                }
+//            }
+//        }
+    }
+
+    private fun findHashIndex(text: String, realIndexList: MutableList<Int>): MutableList<Int> {
         val hashIndexList = mutableListOf<Int>()
-        for (i in targetIndexList) {
-            for (j in i + 1 until text.length) {
-                if (text[j] == ' ') {
-                    hashIndexList.add(j)
-                    break
-                } else if (text[j] == '#') {
-                    break
+        val size = realIndexList.size
+
+        for (i in 0 until size) {
+            if(realIndexList[i]!=-1){// #이 하나도 없을때는 X
+                for (j in realIndexList[i] + 1 until text.length) {//#시작부터 텍스트 끝까지
+                    if (text[j] == ' ') {//공백 나오면 추가후 끝
+                        hashIndexList.add(i, j)
+                        break
+                    } else if (text[j] == '#') {//#나와도 추가후 끝
+                        hashIndexList.add(i, j)
+                        break
+                    } else {
+                        if (j==text.length-1){// 하나 씩 증가
+                            hashIndexList.add(i, j)
+                        }
+                    }
                 }
             }
         }
         return hashIndexList
     }
+
 
 
 }
